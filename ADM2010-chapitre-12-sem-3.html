@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartes ADM2010 chapitre 3</title>
+<style>
+:root {
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --text: #172033;
+  --muted: #1858b8;
+  --accent: #1e72d1;
+  --accent2: #2a1ddd;
+  --shadow: 0 12px 35px rgba(31, 41, 55, .12);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 28px 18px 40px;
+}
+h1 { text-align:center; margin: 0 0 8px; font-size: 28px; }
+.subtitle { text-align:center; color:var(--muted); margin-bottom:24px; }
+.counter { text-align:center; color:var(--muted); margin-bottom:18px; font-size:14px; }
+.success-panel { position: sticky; top: 0; z-index: 30; background: rgba(244,247,251,.96); backdrop-filter: blur(8px); padding: 12px 0 14px; margin: 0 0 18px; }
+.success-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; max-width:560px; margin:0 auto 8px; font-size:14px; font-weight:bold; }
+.success-percent { color:#19c909; font-size:22px; font-weight:800; }
+.success-track { max-width:560px; height:10px; margin:0 auto 7px; background:#fecaca; border-radius:999px; overflow:hidden; }
+.success-fill { height:100%; width:100%; background:#20ca4b; border-radius:999px; transition:width .25s ease; }
+.success-details { text-align:center; color:var(--muted); font-size:12px; }
+.grid { display:flex; flex-direction:column; gap:16px; }
+.card-wrap {
+  perspective: 1200px;
+  height: 190px;
+  cursor: pointer;
+}
+.card {
+  width:100%; height:100%;
+  position:relative;
+  transform-style:preserve-3d;
+  transition: transform .6s ease;
+}
+.card.flipped { transform:rotateY(180deg); }
+.face {
+  position:absolute; inset:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+  background:var(--card);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:28px;
+  font-size:20px;
+  line-height:1.45;
+}
+.front { border-top:5px solid var(--accent); }
+.back {
+  transform:rotateY(180deg);
+  border-top:5px solid #310123;
+  font-size:18px;
+}
+.hint {
+  position:absolute; bottom:10px; left:0; right:0;
+  text-align:center; font-size:12px; color:var(--muted);
+}
+button {
+  display:block;
+  margin:30px auto 0;
+  border:0;
+  border-radius:999px;
+  padding:14px 30px;
+  background:var(--accent);
+  color:white;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 8px 20px rgba(49,94,251,.25);
+}
+button:hover { background:var(--accent2); }
+
+.card-wrap { position: relative; }
+.card-wrap.marked .face { border: 3px solid #e53935 !important; }
+.card-wrap.marked .front { border-top: 5px solid #e53935 !important; }
+.mark-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #b71c1c;
+  background: #e53935;
+  padding: 0;
+  margin: 0;
+  z-index: 20;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18);
+}
+.mark-btn:hover { background: #c62828; }
+.mark-btn.marked { background: #8b0000; }
+
+/* Bulle flottante des cartes d'erreurs */
+.error-bubble {
+  position: fixed; right: 22px; bottom: 22px; z-index: 1000;
+  width: 62px; height: 62px; border-radius: 50%; margin: 0; padding: 0;
+  background: #e53935; color: #fff; border: 3px solid #fff;
+  box-shadow: 0 5px 18px rgba(0,0,0,.25); font-size: 25px;
+  display: flex; align-items: center; justify-content: center;
+}
+.error-bubble:hover { background: #c62828; }
+.error-badge {
+  position: absolute; top: -6px; right: -5px; min-width: 25px; height: 25px;
+  padding: 0 6px; border-radius: 999px; background: #172033; color: white;
+  border: 2px solid white; font-size: 13px; line-height: 21px; text-align: center;
+}
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 1100;
+  background: rgba(15, 23, 42, .62); padding: 24px;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.error-modal {
+  width: min(850px, 100%); max-height: 88vh; overflow-y: auto;
+  background: var(--bg); border-radius: 18px; padding: 24px; position: relative;
+  box-shadow: 0 18px 60px rgba(0,0,0,.35);
+}
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-right: 42px; }
+.modal-header h2 { margin: 0 0 18px; font-size: 22px; }
+.close-modal {
+  position: absolute; top: 12px; right: 12px; margin: 0; width: 38px; height: 38px;
+  padding: 0; border-radius: 50%; background: #e5e7eb; color: #172033; font-size: 25px;
+  box-shadow: none;
+}
+.close-modal:hover { background: #cbd5e1; }
+.error-list { display: flex; flex-direction: column; gap: 14px; }
+.error-card { position: relative; min-height: 145px; background: white; border: 2px solid #e53935;
+  border-top: 5px solid #e53935; border-radius: 14px; padding: 24px 48px 24px 20px;
+  box-shadow: var(--shadow); cursor: pointer; white-space: pre-wrap; line-height: 1.45; }
+.error-card .answer { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid #e5e7eb; }
+.error-card.flipped .answer { display: block; }
+.unmark-btn {
+  position: absolute; top: 8px; right: 8px; margin: 0; padding: 0; width: 20px; height: 20px;
+  min-width: 20px; border-radius: 50%; border: 2px solid #0759b7; background: #1e72d1;
+  box-shadow: 0 2px 5px rgba(0,0,0,.18); z-index: 2;
+}
+.unmark-btn:hover { background: #084f9e; }
+.empty-errors { text-align: center; color: var(--muted); padding: 28px 12px; }
+@media (max-width:600px) {
+  .error-bubble { right: 14px; bottom: 14px; width: 56px; height: 56px; }
+  .modal-overlay { padding: 10px; } .error-modal { padding: 18px 12px; max-height: 92vh; }
+  .modal-header h2 { font-size: 19px; }
+}
+
+@media (max-width:600px) {
+  .card-wrap { height:220px; }
+  .face { font-size:18px; padding:22px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>📚 ADM2010 Chapitre 3</h1>
+  <div class="subtitle">Clique sur une question pour voir la réponse. Reclique pour revenir à la question.</div>
+  <div class="success-panel" aria-live="polite">
+    <div class="success-heading"><span>✅ Taux de réussite</span><span id="successPercent" class="success-percent">100 %</span></div>
+    <div class="success-track" role="progressbar" aria-label="Taux de réussite" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="successFill" class="success-fill"></div></div>
+    <div id="successDetails" class="success-details">0 carte en rouge · 0 carte réussie sur 0</div>
+  </div>
+  <div class="counter"><span id="count">0</span> cartes</div>
+  <div id="cards" class="grid"></div>
+  <button id="shuffleBtn">🔀 Mélanger</button>
+</div>
+
+<button id="errorBubble" class="error-bubble" type="button" aria-label="Afficher les cartes d'erreurs" title="Afficher les cartes d'erreurs">
+  ⚑ <span id="errorBadge" class="error-badge">0</span>
+</button>
+
+<div id="errorModalOverlay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="errorModalTitle">
+  <div class="error-modal">
+    <button id="closeErrorModal" class="close-modal" type="button" aria-label="Fermer">×</button>
+    <div class="modal-header"><h2 id="errorModalTitle">🔴 Mes cartes d'erreurs (<span id="modalErrorCount">0</span>)</h2></div>
+    <div id="errorCardsList" class="error-list"></div>
+  </div>
+</div>
+
+<script>
+const originalCards = [
+{
+    q: "Quelles sont les 5 principes fondamentaux/disciplines de l’organisation apprenante?",
+    a: "1) la maîtrise personnelle, 2) remise en question des modèles mentaux, 3) vision partagée, 4) apprentissage collaboratif, 5) pensée systémique."
+  },{
+    q: "Qu’est-ce que le principe fondamentaux (discipline) ‘’la maîtrise personnelle’’?",
+    a: "l'ouverture d'esprit et un désir d'apprendre continuellement, les membres se positionnent aussi dans une posture d'apprenance, la visée de cette première discipline tient à encourager tous les membres de l'organisation (c'est-à-dire employés, gestionnaires, dirigeants) à s'engager activement dans la mise à jour et le développement continuel de leurs connaissances et de leurs compétences."
+  },{
+    q: "Qu’est-ce que le principe fondamentaux (discipline) remise en question des modèles mentaux?",
+    a: "discipline renvoie aux images et aux hypothèses que les personnes entretiennent à leur égard, et capacité des membres de l'organisation à prendre conscience des modèles mentaux, sources potentielles de préjugés qui conditionnent leurs agissements (individuels ou de groupe)."
+  },{
+    q: "Qu’est-ce que le principe fondamentaux (discipline) vision partagée?",
+    a: "discours commun et une vision de l'avenir à laquelle tous les membres de l'organisation souscrivent, et envers laquelle ils s'engagent, elle donne une orientation claire et aide à canaliser les efforts d'apprentissage réalisés au sein de l'organisation, cette vision permet donc d'orienter les actions des membres de l'organisation tout autant que les apprentissages nécessaires pour qu'elle puisse s'accomplir."
+  },{
+    q: "Qu’est-ce que le principe fondamentaux (discipline) apprentissage collaboratif?",
+    a: "le déploiement d'efforts de collaboration nécessaires à l'atteinte d'un objectif commun, les membres doivent être capables d'apprendre et d'agir ensemble. Quand les organisations sont réellement capables d'apprendre de façon collaborative (voire en équipe), non seulement elles atteignent de meilleurs résultats, mais elles offrent aussi à leurs membres de nouvelles occasions d'apprentissage qui s'inscrivent au-delà de celles déjà existantes."
+  },{
+    q: "Qu’est-ce que le principe fondamentaux (discipline) pensée systémique?",
+    a: "qui intègre et renforce les autres, considère l'organisation comme « un tout qui est plus grand que la somme de ses parties», doit donc aussi être capable de voir et de comprendre comment ses parties sont interdépendantes (comment chacune est influencée par le système et comment chacune d'elles influence à son tour ce même système), et concerne donc la capacité des membres de l'organisation à développer un portrait global (voire systémique) de l'organisation permettant d'établir des liens, comprendre ou même critiquer les structures existantes et redéfinir les processus qui guident son fonctionnement."
+  },{
+    q: "Quelles sont les disciplines de l’organisation apprenante qui agissant au niveau collectif?",
+    a: "Vision partagée et apprentissage collaboratif."
+  },{
+    q: "Quelles sont les disciplines de l’organisation apprenante qui agissant au niveau organisationnel?",
+    a: "Pensée systémique."
+  },{
+    q: "Quelles sont les disciplines de l’organisation apprenante qui agissant au niveau individuel?",
+    a: "Maitrise personnelle et modèles mentaux."
+  },{
+    q: "Que signifie environnement VICA?",
+    a: "Acronyme qui signifie un environnement volatile, incertain, complexe et ambigu."
+  },{
+    q: "Pour la discipline maitrise personnelle de l’organisation apprenante, elle repose sur quoi?",
+    a: "Un besoin permanent d’apprendre par le maintien d’une tension créatrice, l’acceptation de prendre des risques de sortir de sa zone de confort et d’essayer de nouvelles choses, et la promptitude au changement."
+  },{
+    q: "Pour la discipline maitrise personnelle de l’organisation apprenante, elle se traduit par quoi?",
+    a: "Des employés qui font les choses avec facilité aisance et professionnalisme, employés qui tire plaisir et fierté de leur accomplissements et de ceux de l’organisation, et employés qui parlent ouvertement librement et sentent qu’ils peuvent exercer une réelle influence sur le milieu."
+  },{
+    q: "Pour la discipline Modèles mentaux de l’organisation apprenante, elle repose sur quoi?",
+    a: "Les images les hypothèses les histoires que les gens entretiennent sur eux-mêmes les autres les institutions ou même la société, la capacité de remettre en question les modèles mentaux (tacites), et un besoin de se défaire des préjugés."
+  },{
+    q: "Pour la discipline Modèles mentaux de l’organisation apprenante, elle se traduit par quoi?",
+    a: "Des employés qui prennent conscience de leurs agissements et des effets de ceux-ci sur les autres, employés qui sont en mesure de relever les pensées automatiques ou inconscientes et de corriger celle-ci, et employé qui développe de meilleures capacités d’introspection et de réflexion sur leur mode de pensée leurs émotions et leurs comportements."
+  },{
+    q: "Pour la discipline vision partagée de l’organisation apprenante, elle repose sur quoi?",
+    a: "Un sens de la communauté qui est présent dans l’ensemble de l’organisation, une orientation commune qui guide les actions individuelles et collectives, et des processus décisionnels transparents et partagés."
+  },{
+    q: "Pour la discipline vision partagée de l’organisation apprenante, elle se traduit par quoi?",
+    a: "Des employés qui affiche un niveau d’engagement plus élevé, employé qui présente des intentions manifestes à participer à la définition et à la réalisation d’un nouveau projet, et employé qui présente une plus grande ouverture à l’apprentissage et à la cocréation."
+  },{
+    q: "Pour la discipline de l’apprentissage collectif de l’organisation apprenante, elle repose sur quoi?",
+    a: "La capacité d’apprendre en équipe par le dialogue et la rétroaction, la diffusion de connaissances et d’idées à travers le groupe et plus largement au sein de l’organisation, et  le développement de compétences collectives."
+  },{
+    q: "Pour la discipline de l’apprentissage collectif de l’organisation apprenante, elle se traduit par quoi?",
+    a: "Des employés qui se sentent inspirés et sont motivés par la réalisation de changements plus fondamentaux dans leur milieu, les idées et les nouvelles connaissances qui sont mises application par les employés et le fait que ceux-ci contribuent à leur propagation au sein de l’organisation, et les divergences qui sont traitées de façon constructive et efficace autant entre les individus que les différentes unités de l’organisation."
+  },{
+    q: "Pour la discipline pensée systémique de l’organisation apprenante, elle repose sur quoi?",
+    a: "La capacité à apprécier les phénomènes dans leur globalité, l’étude des interrelations entre les éléments tout autant que la nature de ces éléments individuellement, et l’idée que le succès ne dépend pas d’un seul individu mais bien tous ceux qui font partie du système."
+  },{
+    q: "Pour la discipline pensée systémique de l’organisation apprenante, elle se traduit par quoi?",
+    a: "Des employés qui arrivent à développer des stratégies et des plans d’action réalistes qui tiennent mieux compte de la complexité du système organisationnel, des employés qui arrivent mieux à déceler les erreurs possibles et à évaluer leurs efforts sur le fonctionnement de l’organisation, et employés qui sont plus ouverts à l’exploration et à l’application de nouvelles possibilités tenant compte de l’organisation et de son environnement."
+  },{
+    q: "une organisation apprenante fait référence à quelle philosophie?",
+    a: "une philosophie de gestion qui permet de maintenir l'organisation en phase avec son environnement et l'aide à développer ses capacités de faire de nouvelles choses. Dans la pratique, force est d'admettre que l'intégration pleine et sereine d'une telle philosophie de gestion repose, à la fois, sur les principes d'apprentissage évoqués tout au long de cet ouvrage, mais également sur ceux relatifs à la gestion du changement."
+  },{
+    q: "quels sont les actions à considérer pour les organisations désireuses de s’engager sur une voie d’organisation apprenante?",
+    a: "• analyser les écarts qui existent entre, d'un côté, la vision, les valeurs ainsi que les objectifs stratégiques promus par l'organisation, et, de l'autre, les pratiques et la culture existantes; • déterminer les changements nécessaires qui permettront de réduire les écarts identifiés au point précédent, et ce, tant du point de vue du contenu des changements et des modalités qui guideront leur implantation au sein de l'organisation que de leur évaluation); • voir au développement des connaissances et des compétences des employés, des groupes de travail et de l'organisation dans son ensemble pour construire et mettre en œuvre une vision partagée; • monitorer continuellement les progrès et réviser les plans d'action en conséquence pour maintenir un esprit d'amélioration continue au sein de l'organisation."
+  },{
+    q: "Qu’est-ce que l’apprentissage organisationnel?",
+    a: "représente le processus par lequel une organisation vient à créer (ou à acquérir), diffuser, analyser, critiquer et intégrer de façon durable de nouvelles connaissances dans la réalisation de ses objectifs."
+  },{
+    q: "Apprentissage organisationnel VS organisation apprenante?",
+    a: "l'apprentissage organisationnel se présente comme un processus, l'idée de l'organisation apprenante, elle, renvoie plutôt à une philosophie de gestion, et repose donc sur les conditions créées par le milieu pour qu'il y ait un apprentissage sur le plan individuel, puis sur le plan collectif."
+  },{
+    q: "Qu’a pour effet la réalisation de nombreux processus d’apprentissages organisationnels?",
+    a: "aura pour effet de nourrir le contexte d'organisation apprenante."
+  },{
+    q: "L'apprentissage organisationnel peut se concevoir selon quelles 3 représentations différentes?",
+    a: "(a) la perspective cognitive/comportementale, (b) la perspective du traitement de l’information, ainsi que (C) les perspectives de la construction sociale."
+  },{
+    q: "Qu’est-ce que la perspective cognitive/comportementale?",
+    a: "perspective définit l'apprentissage organisationnel comme la capacité d'une personne (et par extension d'une organisation) à remettre en question les prémisses sous-jacentes à ses façons de faire, d'une part, et à modifier ses comportements dans le sens des résultats visés, d'autre part."
+  },{
+    q: "Quelle conception fait référence à l'apprentissage en double boucle (double-loop learning)?",
+    a: "La perspective cognitive/comportementale."
+  },{
+    q: "Qu’est-ce que l’apprentissage en double boucle?",
+    a: "se produit lorsqu'une situation problématique exige une remise en cause des processus et des valeurs qui sous-tendent les modes de fonctionnement d'une organisation, ce type d'apprentissage reconnaît que la façon dont un problème est défini peut être la source même du problème (voire sa cause)."
+  },{
+    q: "Qu’est-ce que de l'apprentissage en boucle simple (single-loop learning)?",
+    a: "Met l'accent sur la détection et la correction des écarts s'inscrivant entre les objectifs ciblés et les résultats observés."
+  },{
+    q: "Quelle est la perspective selon laquelle les interventions qui s’en inspire visent la création et le maintien d'un processus réflexif remettant en question les principes ainsi que les valeurs sous-jacentes aux pratiques organisationnelles souvent déjà bien ancrées (et mènent donc à la remise en question des modèles mentaux évoquée précédemment)?",
+    a: "Perspective cognitive/comportementale."
+  },{
+    q: "qu’est-ce que l’apprentissage en boucle simple?",
+    a: "Type d'apprentissage qui consiste à détecter, corriger ou contourner les effets d'un problème, sans toutefois remettre en question ou changer les normes sur lesquelles il repose."
+  },{
+    q: "Quelle est la perspective pour laquelle la capacité des membres de l'organisation à détecter les erreurs (c'est-à-dire apprentissage en boucle simple) et à remettre en question les prémisses sous-jacentes à leurs façons de faire (c'est-à-dire apprentissage en double boucle)?",
+    a: "La perspective cognitive/comportementale."
+  },{
+    q: "Qu’est-ce que la perspective du traitement de l'information?",
+    a: "correspond à la création d'un savoir organisationnel par un processus qui rend disponible, amplifie et intègre les savoirs individuels au système de connaissances de l'organisation, cette perspective s'intéresse davantage aux stratégies qui misent sur la communication et l'entreposage des informations."
+  },{
+    q: "Que permet de faire la perspective du traitement de l'information?",
+    a: "capturer les connaissances développées à tous les niveaux de l'organisation et de les rendre disponibles à l'ensemble des acteurs organisationnels selon une logique de circulation de l'information autant verticale (C’est-à-dire ascendante et descendante) que latérale (c’est à dire inter et intra unité)."
+  },{
+    q: "Quelles sont les 4 phases de la perspective du traitement de l'information?",
+    a: "1) la création de connaissances, 2) transfert des connaissances, 3) captation de connaissances, 4) L’exploitation des connaissances."
+  },{
+    q: "Que signifie la création de connaissances?",
+    a: "(p. ex par l'obtention d'une rétroaction quant à l'acceptabilité d'on nouveau produit par les clients ou encore par l'analyse faite par une équipe de travail des causes ayant mené à l'échec d'un projet);."
+  },{
+    q: "Que signifie la captation de connaissances?",
+    a: "(p. ex- par une mise en forme documentée des façons de faire es des méthodes de travail ou par la compilation des réponses obtenues au moyen d'une foire aux questions concernant une nouvelle application ou un nouvel outil de travail);."
+  },{
+    q: "Que signifie l’exploitation des connaissances?",
+    a: "(p ex. par l'accès à des informations archivées sur une plateforme mobile ou encore par la consultation d'une aide en ligne pour réaliser une tâche particulière)."
+  },{
+    q: "Sur quoi repose la perspective du traitement de l'information?",
+    a: "Repose sur les efforts de tous les membres de l'organisation et repose également sur leur capacité à récupérer (et donc à rendre accessibles) les connaissances entreposées dans la mémoire de l'organisation au moment où ils en ont besoin."
+  },{
+    q: "Qu’est-ce que la perspective de la construction sociale?",
+    a: "aborde l'apprentissage organisationnel sous l'angle de l'apprentissage social et définit celui-ci comme une activité relationnelle (par opposition à un processus de pensée individuelle), laquelle met l'accent sur les façons dont les gens interagissent et développent les facteurs contextuels propres au milieu de travail."
+  },{
+    q: "que soutiennent les tenants de la perspective de la construction sociale?",
+    a: "que les individus apprennent de leur participation à des situations sociales qui les amènent à développer et à partager leurs connaissances."
+  },{
+    q: "Que vise la perspective de la construction sociale?",
+    a: "organiser des moments où les employés seront appelés à échanger et à discuter de différentes problématiques, en vue de développer leurs connaissances et d'accroître leurs compétences. Par le partage d'expériences, la tenue de telles discussions peut ainsi faciliter le processus de transformation des connaissances tacites en connaissances explicites. Par exemple, en créant des équipes de travail semi-autonomes, ces dernières se trouvent à avoir de multiples occasions où les membres peuvent partager des informations et des connaissances nécessaires au travail et à l'accroissement de leur efficacité. De façon semblable, un membre d'une équipe appelé à suivre une formation complémentaire à l'externe pourra, à son retour au travail, partager ses nouvelles connaissances avec ses collègues; et ainsi permettre à tous d'en bénéficier."
+  },{
+    q: "Qu’est-ce que la Connaissance explicite?",
+    a: "Connaissance qui est structurée, stockable et facilement diffusable du fait qu'elle est codifiée, articulée explicitement et présentée dans un langage formel. Concernent les informations qui se présentent généralement sur une structure quelconque et qui peuvent être stockées et facilement diffusées ou transférées à d'autres (p, ex, connaissances comprises dans un manuel d'utilisateur décrivant la procédure à suivre pour opérer un logiciel de graphisme quelconque)."
+  },{
+    q: "Qu’est-ce que la Connaissance tacite?",
+    a: "Connaissance qui n'est pas structurée, stockable ou facilement diffusable du fait qu'elle repose sur des modèles mentaux, des expériences personnelles, des valeurs ou des croyances. celles-ci renvoient plutôt à des informations qui reposent sur des modèles mentaux, des expériences personnelles, des valeurs ou même des croyances (p, ex, connaissances intégrées par un graphiste en raison de ses expériences passées et lui permettant de comprendre plus rapidement les demandes et les besoins de ses clients), Tels des secrets détenus par une personne, la nature de ces connaissances rend leur traitement et leur diffusion plus difficile."
+  },{
+    q: "Les connaissances explicites et tacites font partie de quelle perspective?",
+    a: "La perspective de la construction sociale."
+  },{
+    q: "Vrai ou faux; La transformation des connaissances tacites en connaissances explicites est nécessaire pour permettre à d'autres personnes de les intégrer et éventuellement de les exploiter?",
+    a: "Vrai."
+  },{
+    q: "Quelles sont les étapes du processus de transformation des connaissances tacites en connaissances explicites (menant à l'explicitation des connaissances)?",
+    a: "Étapes se succèdent : (a) la socialisation, (b) l'externalisation, (c) la standardisation et (d) l'appropriation."
+  },{
+    q: "Qu’est-ce que le processus de transformation des connaissances tacites en connaissances explicites (menant à l'explicitation des connaissances)?",
+    a: "étapes se succèdent, chacune nourrissant la suivante, et se répètent, allant de l'extraction d'une connaissance particulière (jusqu'alors maitrisée par une seule personne) à l'intégration de cette même connaissance par d'autres membres de l'organisation susceptibles d'accomplir des fonctions similaires."
+  },{
+    q: "Qu’est-ce que l’étape socialisation du processus de transformation des connaissances tacites en connaissances explicites?",
+    a: "? (partage des secrets du métier ou une façon de faire) Les connaissances tacites se transmettent d'abord par le dialogue et les échanges en partageant les secrets d'un métier ou d'une façon de faire particulière avec une ou plusieurs personnes."
+  },{
+    q: "Qu’est-ce que l’étape L'externalisation du processus de transformation des connaissances tacites en connaissances explicites?",
+    a: "(traduction des secrets ‘’connaissances tacites’’ en connaissances explicites) Ces secrets sont ensuite traduits en connaissances dites explicites. Cela peut se réaliser à travers des entrevues formelles ou encore par la tenue d'un journal de bord invitant le travailleur à consigner les différentes étapes qu'il entreprend pour assurer la réalisation d'une tâche particulière."
+  },{
+    q: "Qu’est-ce que l’étape standardisation du processus de transformation des connaissances tacites en connaissances explicites?",
+    a: "(organisation des connaissances explicites dans un format utile à leur diffusion) Les connaissances recueillies à l'étape précédente doivent maintenant être soumises à un examen minutieux, afin qu'elles soient présentées dans un format documenté, compréhensible, complet et facilement accessible par d'autres personnes."
+  },{
+    q: "Qu’est-ce que l’étape L'appropriation du processus de transformation des connaissances tacites en connaissances explicites?",
+    a: "(intégration et adaptation des connaissances explicites par d’autres personnes) Le processus culmine éventuellement par une intégration pleine et entière des connaissances maintenant explicitées. À cette étape, il arrive aussi parfois que certains changements (voire ajustements) soient appliqués à la connaissance, et ce, afin de rendre celle-ci encore mieux adaptée à son contexte d'usage."
+  },{
+    q: "Que signifie Équipe de travail semi-autonome?",
+    a: "Équipe dont les membres sont collectivement responsables d'une séquence complète du travail sous-jacent à la production d'un bien ou à la tenue d'un service."
+  },{
+    q: "Quelle est la perspective qui vise à créer des occasions ou les individus pourront échanger et apprendre de leur participation à des situations sociales (équipe semi-autonome ou groupe de résolution de problèmes?",
+    a: "Perspective construction sociale."
+  },{
+    q: "Que soulignent les perspectives qui conçoive l’apprentissage organisationnel?",
+    a: "soulignent l'importance de mettre en place des conditions qui soutiennent l'apprentissage organisationnel au sein de l'organisation."
+  },{
+    q: "Quels sont les 5 facilitateurs de l’apprentissage organisationnel (soutiennent l’apprentissage organisationnel)?",
+    a: "• l'acquisition et la transformation de connaissances; • la culture d'apprentissage; • le leadership axé sur l'apprentissage; • le soutien organisationnel à l'apprentissage; • la gestion stratégique des connaissances et des apprentissages."
+  },{
+    q: "Qu’est-ce que le facilitateur ‘’L'acquisition et la transformation de connaissances’’?",
+    a: "traduit le degré auquel une organisation acquiert, emmagasine et diffuse entre ses membres les nouvelles informations et connaissances, en favorisant l'interprétation de celles-et dans le cadre du travail, Il couvre les aspects suivants: (a) l'acquisition d'information et de nouvelles connaissances, (b) l'interprétation et le partage de celles-là entre les employés, (c) la réflexion permettant d'évaluer les décisions et les résultats obtenus, (d) le stockage et l'extraction d'information dans la mémoire de l'entreprise."
+  },{
+    q: "Qu’est-ce que le facilitateur ‘’La culture d'apprentissage’’?",
+    a: "traduit l'ensemble des efforts, attitudes, valeurs et pratiques organisationnelles qui favorisent l'apprentissage et le développement des membres de l'organisation. Cet ensemble de symboles oriente et régule les comportements des membres de l'organisation."
+  },{
+    q: "Quelles sont les valeurs organisationnelles qui guident l'adoption d'attitudes et de comportements favorables à un apprentissage sur le plan collectif du facilitateur ‘’la culture d’apprentissage’’?",
+    a: "(a) la tolérance aux erreurs, (b) la remise en question de règles établies, (c) l'ouverture à l'expérience et aux changements. En somme, il s'agit d'encourager de multiples façons le partage des idées et l'entraide entre les membres de l'organisation."
+  },{
+    q: "Qu’est-ce que le facilitateur ‘’Le leadership axé sur l'apprentissage’’?",
+    a: "traduit le degré auquel le leadership exercé au sein d'une organisation favorise le questionnement, l'expérimentation et l'exploration de nouvelles idées entre les membres de l'organisation. Ce type de leadership joue un rôle crucial dans le développement de l'apprentissage organisationnel, dans la mesure où la responsabilité de créer et d'entretenir un contexte favorable a l'apprentissage revient généralement aux gestionnaires."
+  },{
+    q: "leadership axé sur l’apprentissage VS culture d’apprentissage?",
+    a: "la culture d'apprentissage se situe au niveau macroscopique, le leadership axé sur l'apprentissage prend tout son sens au sein même des activités quotidiennes des gestionnaires."
+  },{
+    q: "Que regroupe le facilitateur ‘’leadership axé sur l’apprentissage''?",
+    a: "ce facilitateur regroupe un ensemble de comportements favorisant: (a) la création d'un contexte propice à l'ouverture à la prise de risque, (b) le dialogue et le partage d'idées, ainsi que (c) la présentation d'idées nouvelles aux employés."
+  },{
+    q: "Qu’est-ce que le facilitateur ‘’ Le soutien organisationnel à l'apprentissage’’?",
+    a: "la somme des efforts concrets mis en place afin d’appuyer l’apprentissage et le développement professionnel des employés la formation en cours d’emploi l’apprentissage à distance etc. Il s’agit pour l’organisation d’un réel investissement de ressources matérielles financières humaines destinée à fournir aux employés un milieu motivant et à soutenir leurs démarches d’apprentissage continue. Il peut s’agir d’offrir par exemple des occasions de formation ou de coaching qui répondent aux besoins immédiats ou à plus long terme de l’employé."
+  },{
+    q: "Quelles sont les actions que constitue le facilitateur ‘’soutien organisationnel à l'apprentissage’’?",
+    a: "1) l’accroissement du transfert des connaissances dans le milieu du travail, 2) la capacité de l’organisation à diagnostiquer les besoins de développement, 3) l’utilisation de moyens de formation et de développement adapté qui favorise l’apprentissage continu."
+  },{
+    q: "Qu’est-ce que le facilitateur ‘’ La gestion stratégique des connaissances et des apprentissages’’?",
+    a: "degré auquel une organisation harmonise ses objectifs stratégiques et les moyens mis en place pour les atteindre. Plus clairement, ce denier facilitateur concerne la diffusion auprès des employés des informations clés sur les orientations de l'organisation (C’est-à-dire mission, valeurs, vision, objectifs, résultats attendus, etc.)."
+  },{
+    q: "Sur quoi s’appuie le facilitateur ‘’gestion stratégique des connaissances et des apprentissages’’?",
+    a: "Il s'appuie sur l'idée que les employés ont d'abord besoin de comprendre comment leur travail contribue à la réalisation de la mission de l'organisation, et ce, tout en leur permettant d'identifier les écarts existants entre la situation actuelle et celle désirée. Cela se veut toutefois plus qu'une simple prise de conscience. De fait, on dira que l'information se transforme en connaissance lorsqu’elle est disséminée, discutée, puis intégrée à différents niveaux au sein de l'organisation. La discussion en groupe dans un contexte d’ouverture à l'expérience, de tolérance aux erreurs et d'acceptation de la diversité des points de vue représente l'un des moyens pour favoriser cette intégration."
+  },{
+    q: "Quels sont les ensembles de comportements que favorise le facilitateur facilitateur ‘’gestion stratégique des connaissances et des apprentissages’’ ?",
+    a: ": (a) une compréhension commune des buts de l'organisation, (b) la cohérence entre les objectifs de la haute direction et les moyens mis en place pour les atteindre, de même que (c) une communication interne fluide entre les divers niveaux organisationnels."
+  },{
+    q: "Quels sont les éléments constitutifs du facilitateur « Acquisition et transformation des connaissances »?",
+    a: "(1) l'acquisition d'informations et de nouvelles connaissances, (2) l'interprétation et le partage de celles-ci entre les employés, (3) la réflexion permettant d'évaluer les décisions et les résultats obtenus, (4) le stockage et l'extraction des connaissances dans la mémoire de l'entreprise."
+  },{
+    q: "Quels sont les exemples de moyens favorisant le facilitateur « Acquisition et transformation des connaissances » ?",
+    a: "(1) mettre sur pied un forum d'échange électronique (ex. : système de questions-réponses), (2) mettre sur pied des communautés de pratique pour certains groupes professionnels, (3) partager les rapports de performance de l'organisation avec certains groupes clés, (4) organiser des ateliers de réflexion pour évaluer les conditions de succès d'un projet et les raisons de son échec."
+  },{
+    q: "Quels sont les éléments constitutifs du facilitateur « Culture d'apprentissage »?",
+    a: "(1) une tolérance aux erreurs, (2) une remise en question des règles établies, (3) une ouverture à l'expérience et aux changements."
+  },{
+    q: "Quels sont les exemples de moyens favorisant le facilitateur « Culture d'apprentissage » ?",
+    a: "(1) embaucher des individus qui partagent les valeurs liées à l'apprentissage organisationnel (ouverture d'esprit, partage d'idées nouvelles, collaboration et travail en équipe), (2) mettre sur pied un programme d'orientation pour les nouveaux employés mettant l'accent sur les valeurs de l'apprentissage organisationnel (collaboration et tolérance aux erreurs), (3) mettre sur pied un système d'évaluation de la performance des groupes ou des unités basé sur des indicateurs comportementaux de l'apprentissage organisationnel, (4) mettre sur pied un système de reconnaissance des équipes performantes qui prennent des initiatives."
+  },{
+    q: "Quels sont les éléments constitutifs du facilitateur « Leadership axé sur l'apprentissage » ?",
+    a: "(1) une ouverture des leaders à la prise de risque, (2) une ouverture des leaders à la remise en question de leur propre point de vue, (3) une ouverture des leaders au dialogue constructif, (4) une ouverture des leaders à l'expérimentation de nouvelles idées."
+  },{
+    q: "Quels sont les exemples de moyens favorisant le facilitateur « Leadership axé sur l'apprentissage » ?",
+    a: "(1) partager l'information sur les meilleures pratiques de gestion auprès des gestionnaires, (2) mettre sur pied des initiatives de formation pour les leaders de l'organisation (tolérance aux erreurs, prise de décision participative et ouverture à l'expérimentation), (3) embaucher des individus dont le profil est cohérent avec les principes de l'apprentissage organisationnel (ex. : leaders orientés vers le développement des compétences des membres de l'organisation)."
+  },{
+    q: "Quels sont les éléments constitutifs du facilitateur « Soutien organisationnel à l'apprentissage » ?",
+    a: "(1) une analyse des besoins d'apprentissage, (2) des moyens concrets consacrés à l'apprentissage (temps, ressources budgétaires et outils), (3) un accent sur le développement professionnel à long terme."
+  },{
+    q: "Quels sont les exemples de moyens favorisant le facilitateur « Soutien organisationnel à l'apprentissage » ?",
+    a: "(1) mettre sur pied des initiatives donnant accès à des moyens de formation flexibles (formation en ligne, apprentissage juste-à-temps et rotation de poste), (2) identifier les barrières au transfert des apprentissages et travailler à leur élimination ou à la réduction de leurs effets, (3) offrir des formations ciblées portant sur les besoins identifiés chez les employés et exprimés par ceux-ci, (4) concevoir un système de rémunération récompensant les idées créatives."
+  },{
+    q: "Quels sont les éléments constitutifs du facilitateur « Gestion stratégique des connaissances et des apprentissages » ?",
+    a: "(1) une compréhension des buts de l'organisation, (2) une cohérence entre les objectifs de la haute direction et les moyens mis en place pour les atteindre, (3) une communication interne fluide entre les divers niveaux organisationnels."
+  },{
+    q: "Quels sont les exemples de moyens favorisant le facilitateur « Gestion stratégique des connaissances et des apprentissages » ?",
+    a: "(1) concevoir un plan stratégique en intégrant les principes de l'apprentissage organisationnel dans la structure et les différentes branches et divisions de l'organisation de l'organisation, (2) communiquer les objectifs stratégiques aux diverses unités de l'organisation et les relier aux activités de développement des compétences des membres des équipes de travail."
+  },{
+    q: "Que signifi AO?",
+    a: "apprentissage organisationnel."
+  },{
+    q: "Quels sont les avantages de l’apprentissage informel au niveau des employés?",
+    a: "1) souvent plus engageant et perçu comme plus amusant que l'apprentissage dit formel, 2) jugé par ceux-ci comme plus pratique et plus immédiatement applicable, car il est basé sur des situations réelles plutôt que sur des simulations ou des scénarios hypothétiques, 3) , l'employé en est généralement le principal responsable et peut donc progresser à son propre rythme."
+  },{
+    q: "Quelles sont les limites de l’apprentissage informel par rapport aux employés?",
+    a: "1) qu'il peut être difficile d'obtenir une reconnaissance formelle ou une certification pour les nouveaux acquis, 2) il n'est pas toujours garanti que tous sauront tirer les pleins bénéfices des connaissances partagées ou encore des expériences rencontrées."
+  },{
+    q: "Quels sont les avantages de l’apprentissage informel au niveau de l’organisation?",
+    a: "1) les employés peuvent découvrir des solutions créatives à des problèmes concrets, ce qui ultimement peut renforcer la culture d'apprentissage et le fonctionnement général de l'organisation, 2) améliorer l’engagement et la motivation des employés en leur donnant l'occasion de poursuivre des intérêts personnels et de développer des compétences, 3) en offrant des occasions de développement professionnel, en encourageant la collaboration et la réflexion critique, ainsi qu'en reconnaissant et en valorisant les compétences acquises par l'apprentissage informel, 4) + économique."
+  },{
+    q: "Quelles sont les limites de l’apprentissage informel par rapport au niveau de l’organisation?",
+    a: "1) manquer de structure et de cohérence, ce qui peut rendre difficile sa planification, son organisation ou même son évaluation, 2) ne pas toujours donner accès à des expériences pertinentes et de qualité, 3) , l'absence d'un cadre (comme celui que fournit une formation) afin de structurer et guider les apprenants peut entrainer une grande variabilité dans les apprentissages réalisés par les apprenants et n'offre aucune garantie vraiment quant à l'intégration des nouvelles connaissances (C'est-à-dire intégration partielle ou complète) ou même quant à la qualité de cette intégration (c'est à-dire intégration passagère ou durable)."
+  },{
+    q: "Quels sont les moyens utiles pouvant aider à favoriser l'apprentissage informel au sein de l'organisation?",
+    a: "1) Créer des communautés de pratique, 2) mettre en place des programmes de mentorat, 3) Utiliser les médias sociaux, 4) Encourager l'autoapprentissage, 5) Offrir des affectations temporaires, 6) Encourager le partage d’expériences."
+  },{
+    q: "Que signifie ‘’ Offrir des affectations temporaires’’?",
+    a: "occasions d'apprentissage informel intéressantes en permettant aux employés de travailler sur des projets différents avec des collègues d'autres unités de l’organisation (50). Ces occasions peuvent permettre aux employés de partager des connaissances et des compétences, tout en veillant au développement d'une meilleure compréhension du fonctionnement général de l’organisation et du système dans lequel elle opère."
+  },{
+    q: "Donne un bon exemple de pratique permettant d’encourager le partage d’expériences par rapport à l’apprentissage informer au sein de l’organisation?",
+    a: "Les ateliers de type Kaizen communément retrouvés dans les processus d'amélioration continue constituent un bon exemple d'une telle pratique."
+  },{
+    q: "Que signifie ‘’Communauté de pratiques’’?",
+    a: "Regroupement de travailleurs qui partagent des intérêts ou des compétences particulières et qui échangent, entre eux (virtuellement ou en vis-à-vis), des informations afin d'élargir la compréhension qu'ils ont d'un sujet particulier, Déjà bien répandus au sein des organisations, ces groupes peuvent prendre différentes formes, tels des forums en ligne, des groupes de résolution de problème ou encore des comités consultatifs."
+  },{
+    q: "Quels sont les paramètres sur lesquels les communautés de pratiques se basent pour la création d'une communauté de pratiques?",
+    a: "(a) le mode de création, (b) la composition du groupe (ouverte ou fermée), ainsi que (c) les centres d'intérêt (sujet particulier, compétence à développer)."
+  },{
+    q: "avantages pour les travailleurs des communautés de pratique?",
+    a: "1) par le réseautage - d'apprendre les uns des autres en partageant des connaissances, des idées, ainsi que des expériences, 2) ces échanges permettent aussi aux membres de la communauté de recevoir des commentaires et des conseils de leurs pairs, ce qui peut les aider à améliorer leurs compétences ou encore à trouver des solutions innovantes aux enjeux auxquels ils sont confrontés, 3) elles constituent un bon moyen pour rester à jour avec les dernières tendances et développements."
+  },{
+    q: "Pour que les communautés de pratique soient efficaces quelles sont les conditions permettant d'assurer le succès de ces regroupements?",
+    a: "1) Objectifs clairs, 2) Engagement et participation active, 3) Mécanismes de communication efficaces, 4) Apprentissage collaboratif, 5) Normes partagées, 6) Leadership efficace, 7) Évaluation régulière."
+  },{
+    q: "Nomme des exemples de mécanismes de communications efficaces d’outils technologiques qui peuvent être mobilisés dans des communautés de pratique d’apprentissage organisationnel et collaboratif?",
+    a: "forum en ligne, groupe de discussion ou encore réseau social."
+  },{
+    q: "Vrai ou faux; l’idée de l'apprentissage collaboratif ne s'applique pas aussi aux communautés de pratique?",
+    a: "Faux, ça s’applique oui, les membres doivent être prêts à apprendre les uns des autres et à partager leurs connaissances et leurs savoir-faire, Cela permet aux membres de développer de nouvelles compétences et de renforcer leur expertise dans le domaine."
+  },{
+    q: "Que peuvent faire des membres d’une communauté de pratique?",
+    a: "Ensemble, ils examinent leur réalité, collectent des informations et discutent - à l'extérieur du cadre normal de travail ou des frontières de l'organisation - d'idées et de pratiques qui pourraient aider à améliorer le fonctionnement de leur organisation, Par exemple, cela peut inclure la présentation d'un projet, la démonstration d'une compétence particulière ou encore le partage d'histoires ou d'expériences."
+  },{
+    q: "Synonyme de ‘’ climat de confiance entre les membres’’?",
+    a: "aussi appelé climat de sécurité psychologique."
+  },{
+    q: "Que doit faire le leader pour faire du leadership efficace pour maintenir les membres engagés et motivés?",
+    a: "doivent être en mesure de bien définir les objectifs à poursuivre, de communiquer clairement avec les membres, tout en favorisant leur engagement ainsi que l'établissement d'un climat propice aux échanges."
+  },{
+    q: "Donne un exemple de règle qu’un leader doit appliquer afin de faire du leadership efficace dans une communauté de pratique?",
+    a: "? il est important que les règles et les attentes soient claires pour tous les membres de la communauté. À titre d'exemple, les responsables de la communauté peuvent voir à préciser aux membres la fréquence et la durée des réunions, les attentes en matière de participation et de contribution, ainsi que les normes qui baliseront les rapports entre les membres (p. ex. temps de parole, respects des idées, etc.)."
+  },{
+    q: "Donne des exemples de moyens pouvant servir pour évaluer les travaux et la pertinence d'une communauté de pratique?",
+    a: "les membres doivent être encouragés à fournir des commentaires et des suggestions visant à améliorer son fonctionnement. Ces évaluations peuvent aussi servir à réviser les objectifs établis au départ ou à en formuler de nouveaux pour mieux servir les intérêts des membres. Les enquêtes ou sondages réalisés auprès des membres ou encore la tenue de groupes de discussion constituent autant d'exemples de moyens pouvant servir pour évaluer les travaux et la pertinence d'une communauté de pratique."
+  },{
+    q: "Que signifie IFAO?",
+    a: "Inventaire des facilitateurs de l’apprentissage organisationnel (IFAO), Cet inventaire se constitue de cinq conditions reconnues comme les principaux facilitateurs de l'apprentissage organisationnel. Chacune des dimensions y est évaluée par l'entremise de plusieurs questions, et ce, tant dans sa forme longue que dans sa forme abrégée (les items appartenant à la version courte sont marqués d'un astérisque)."
+  },{
+    q: "À quoi peut servir l’Inventaire des facilitateurs de l’apprentissage organisationnel (IFAO)?",
+    a: "S'utilisant à la manière d'un questionnaire, cet inventaire peut servir pour évaluer une équipe de travail, une direction (ou un service) ou encore une organisation entière."
+  },{
+    q: "que représente un score faible comme résultat d’inventaire des facilitateurs de l’apprentissage organisationnel (IFAO)?",
+    a: "Un score faible traduira plutôt une présence limitée de la condition facilitatrice."
+  },{
+    q: "que représente un score élevé comme résultat d’inventaire des facilitateurs de l’apprentissage organisationnel (IFAO)?",
+    a: "Un score élevé aux items appartenant à chacune des dimensions signifie une présence plus marquée de ces facilitateurs dans le milieu."
+  },{
+    q: "expliquer les différences entre la formation et l’apprentissage organisationnel?",
+    a: "La notion de formation fait référence à « un ensemble d’activités planifiées visant à influencer le processus d’acquisition des connaissances, des habiletés et des attitudes, et ce, afin d’accroître l’efficacité et l’efficience » d’un individu, d’un groupe et des organisations, tandis que l’apprentissage organisationnel se définit comme « le processus, entraîné par des pratiques volontaires, par lequel une organisation acquiert et/ou génère des connaissances qui produisent un changement cognitif et modifient l’étendue des comportements potentiels de l’organisation »."
+  },{
+    q: "Une mesure complète de l’apprentissage organisationnel doit intégrer les éléments du processus d’apprentissage, mais aussi ceux qui soutiennent ce processus. Vrai ou faux?",
+    a: "Vrai. Une mesure complète doit intégrer aussi bien des éléments du processus tels que des gestionnaires qui veillent à la diffusion de l’information à tous les membres de l’organisation, que des moyens techniques et des ressources matérielles."
+  },{
+    q: "La perspective cognitive/comportementale de l’apprentissage organisationnel vise la création de processus réflexif en remettant en question les façons de faire, et tend à modifier ensuite les comportements dans le sens des résultats visés. Vrai ou faux. Expliquez?",
+    a: "Vrai, ici on fait référence à la capacité d’un individu à remettre en question les prémisses à la base de ses façons de faire et à changer ses comportements par la suite."
+  },{
+    q: "La perspective de la construction sociale aborde l’apprentissage organisationnel comme un apprentissage collectif. Vrai ou faux?",
+    a: "Vrai."
+  },{
+    q: "Dans une perspective de traitement de l’information de l’apprentissage organisationnel, un acteur interne a la capacité d’intervenir uniquement dans la phase d’acquisition des connaissances. Vrai ou faux?",
+    a: "Faux. Un individu peut intervenir dans chaque phase du cycle, tant dans l’acquisition des connaissances, que dans la diffusion, l’interprétation ou la captation des connaissances."
+  },{
+    q: "est-il possible de soutenir l’apprentissage organisationnel au sein d’une entreprise sans que les 5 conditions facilitatrices soient réunies pour la mise en place de l’apprentissage organisationnel au sein d’une entreprise?",
+    a: "Oui, on peut soutenir l’apprentissage organisationnel au sein d’une entreprise sans que toutes les conditions soient réunies, mais ce ne sera pas la situation idéale. On peut soutenir l’apprentissage organisationnel dans une organisation puisque l’importance de chacun des facilitateurs peut varier selon le contexte, les apprenants et les choix organisationnels. Il reste que pour atteindre un apprentissage organisationnel optimal, il est fortement conseillé d’intervenir ou de s’assurer d’avoir une réponse aux différents facilitateurs, ce qui peut être fait à différents moments, à court, moyen ou long terme."
+  },{
+    q: "Comment évalueriez-vous la situation d’entreprise en fonction des divers facilitateurs de l’apprentissage organisationnel?",
+    a: "Il est possible d’utiliser les différents indicateurs que comprend ce dernier afin de poser un diagnostic plus précis sur l’organisation en regardant l’inventaire des facilitateurs de l’apprentissage organisationnel (IFAO) (Acquisition et transformation des connaissances, Soutien organisationnel à l’apprentissage, Culture d’apprentissage, Leadership axé sur l’apprentissage et Gestion stratégique des connaissances et des apprentissages)."
+  },{
+    q: "Nomme des exemples de formes d’Acquisition et transformation des connaissances que peut entreprendre une organisation pouvant activer chacun des facilitateurs de l’IFAO?",
+    a: "L'organisation diffuse rapidement les nouvelles idées à l'ensemble de ses employés par un intranet et les communications stratégiques du président, analyse les ventes et les statistiques des employés afin de mesurer sa performance et d'apporter des ajustements, et recueille les commentaires des cadres, des employés et des clientes pour comprendre les facteurs de succès ou d'échec de ses projets."
+  },{
+    q: "Nomme des exemples de formes d’Acquisition et transformation des connaissances que peut entreprendre une organisation pouvant activer chacun des facilitateurs de l’IFAO?",
+    a: "L'organisation offre une formation à l'embauche pour familiariser les nouveaux employés avec ses méthodes de travail, ses comportements attendus et ses objectifs stratégiques, propose de la formation continue adaptée aux différents formats et aux aspirations de carrière de chacun, et devrait améliorer l'équité d'accès aux formations externes pour les employés de plancher afin de maintenir leurs connaissances à jour et de développer leurs compétences et leur employabilité."
+  },{
+    q: "Nomme des exemples de formes d’Acquisition et transformation des connaissances que peut entreprendre une organisation pouvant activer chacun des facilitateurs de l’IFAO?",
+    a: "L'organisation favorise une culture d'apprentissage en actualisant ses façons de faire selon les tendances et les préférences des clientes grâce au développement d'une application permettant aux conseillères d'accéder à leurs profils et à leur historique d'achats, tout en faisant preuve d'ouverture au changement et d'innovation par la mise en place d'un système de vente en ligne sur Our App afin d'aider les employées à mieux accompagner les clientes dans leurs achats en ligne."
+  },
+
+];let cards = [...originalCards];
+const markedCards = new Set();
+
+function updateErrorCount() {
+  const count = markedCards.size;
+  document.getElementById('errorBadge').textContent = count;
+  document.getElementById('modalErrorCount').textContent = count;
+
+  const total = cards.length;
+  const successful = Math.max(0, total - count);
+  const percentage = total ? Math.round((successful / total) * 100) : 0;
+  document.getElementById('successPercent').textContent = percentage + ' %';
+  document.getElementById('successFill').style.width = percentage + '%';
+  document.querySelector('.success-track').setAttribute('aria-valuenow', percentage);
+  document.getElementById('successDetails').textContent =
+    `${count} carte${count === 1 ? '' : 's'} en rouge · ${successful} carte${successful === 1 ? '' : 's'} réussie${successful === 1 ? '' : 's'} sur ${total}`;
+}
+
+function createCardFace(item, isErrorList = false) {
+  const wrap = document.createElement('div');
+  if (isErrorList) {
+    wrap.className = 'error-card';
+    wrap.innerHTML = `<button class="unmark-btn" type="button" aria-label="Retirer cette carte des cartes d'erreurs" title="Remettre cette carte en normal"></button>
+      <strong>${escapeHtml(item.q)}</strong><div class="answer">${escapeHtml(item.a)}</div>`;
+    wrap.querySelector('.unmark-btn').addEventListener('click', (event) => {
+      event.stopPropagation();
+      markedCards.delete(item);
+      render();
+      renderErrorCards();
+    });
+    wrap.addEventListener('click', () => wrap.classList.toggle('flipped'));
+    return wrap;
+  }
+
+  wrap.className = 'card-wrap' + (markedCards.has(item) ? ' marked' : '');
+  wrap.innerHTML = `
+    <div class="card">
+      <div class="face front">
+        <div>${escapeHtml(item.q)}</div>
+        <div class="hint">Clique pour voir la réponse 👆</div>
+      </div>
+      <div class="face back">
+        <div>${escapeHtml(item.a)}</div>
+        <div class="hint">Clique pour revenir à la question 👆</div>
+      </div>
+    </div>`;
+
+  const markBtn = document.createElement('button');
+  markBtn.className = 'mark-btn' + (markedCards.has(item) ? ' marked' : '');
+  markBtn.type = 'button';
+  markBtn.setAttribute('aria-label', markedCards.has(item) ? 'Retirer des cartes d’erreurs' : 'Marquer cette question comme erreur');
+  markBtn.title = markedCards.has(item) ? 'Carte marquée comme erreur' : 'Marquer comme erreur';
+  wrap.appendChild(markBtn);
+
+  markBtn.addEventListener('click', (event) => {
+    event.stopPropagation();
+    if (markedCards.has(item)) markedCards.delete(item);
+    else markedCards.add(item);
+    render();
+    renderErrorCards();
+  });
+
+  wrap.addEventListener('click', () => {
+    wrap.querySelector('.card').classList.toggle('flipped');
+  });
+  return wrap;
+}
+
+function render() {
+  const container = document.getElementById('cards');
+  container.innerHTML = '';
+  document.getElementById('count').textContent = cards.length;
+  cards.forEach(item => container.appendChild(createCardFace(item)));
+  updateErrorCount();
+}
+
+function renderErrorCards() {
+  const container = document.getElementById('errorCardsList');
+  container.innerHTML = '';
+  const errorCards = cards.filter(item => markedCards.has(item));
+  document.getElementById('modalErrorCount').textContent = errorCards.length;
+  document.getElementById('errorBadge').textContent = errorCards.length;
+  if (errorCards.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-errors';
+    empty.textContent = 'Aucune carte en rouge pour le moment. Clique sur le point rouge d’une carte pour l’ajouter ici.';
+    container.appendChild(empty);
+    return;
+  }
+  errorCards.forEach(item => container.appendChild(createCardFace(item, true)));
+}
+
+const errorModalOverlay = document.getElementById('errorModalOverlay');
+document.getElementById('errorBubble').addEventListener('click', () => {
+  renderErrorCards();
+  errorModalOverlay.classList.add('open');
+});
+document.getElementById('closeErrorModal').addEventListener('click', () => errorModalOverlay.classList.remove('open'));
+errorModalOverlay.addEventListener('click', event => {
+  if (event.target === errorModalOverlay) errorModalOverlay.classList.remove('open');
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape') errorModalOverlay.classList.remove('open');
+});
+
+function escapeHtml(value) {
+  return value
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#039;");
+}
+
+document.getElementById('shuffleBtn').addEventListener('click', () => {
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  render();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+render();
+</script>
+</body>
+</html>
